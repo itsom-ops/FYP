@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100 dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perspecta — FYP Multi-Agent Mechanisms & Verification Platform</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Mermaid.js CDN for dynamic graph visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbar for telemetry feed */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .sim-tag {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.65rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.25rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+    }
+    
+    /* Failure edge pulse animation */
+    @keyframes pulseFailure {
+      0% { stroke: #ef4444; stroke-width: 3px; filter: drop-shadow(0 0 6px #ef4444); }
+      50% { stroke: #f87171; stroke-width: 5px; filter: drop-shadow(0 0 12px #ef4444); }
+      100% { stroke: #ef4444; stroke-width: 2px; filter: none; }
+    }
+    .animate-failure-edge {
+      animation: pulseFailure 1.2s ease-in-out 0.8s 1;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col font-sans overflow-hidden bg-slate-950 text-slate-100">
+
+  <!-- TOP BAR / HEADER -->
+  <header class="h-14 bg-slate-900/80 border-b border-slate-800 flex items-center justify-between px-5 backdrop-blur shrink-0">
+    <div class="flex items-center space-x-3">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-500/20">
+        P
+      </div>
+      <div>
+        <h1 class="font-bold text-base tracking-tight text-white flex items-center space-x-2">
+          <span>Perspecta</span>
+          <span class="text-xs font-normal text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">FYP Review-1 Demo</span>
+        </h1>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-3 text-xs">
+      <!-- Connection Status Badge -->
+      <div id="connectionBadge" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-slate-300 font-medium">Ready</span>
+      </div>
+
+      <!-- Sandbox Backend Badge -->
+      <div id="sandboxBadge" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-950/60 border border-amber-700/60 text-amber-300">
+        <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <span>Backend: <strong id="backendName">Detecting...</strong></span>
+      </div>
+
+      <!-- LLM Provider Badge -->
+      <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-blue-950/60 border border-blue-700/60 text-blue-300">
+        <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+        <span>Provider: <strong>MockProvider</strong> (Honest Labels)</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- LEFT SIDEBAR: SCENARIO SELECTION -->
+    <aside class="w-72 bg-slate-900 border-r border-slate-800 flex flex-col p-4 space-y-3 shrink-0">
+      <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-2">
+        FYP Objectives & Scenarios
+      </div>
+
+      <nav class="space-y-1.5 flex-1 overflow-y-auto">
+        <button onclick="selectScenario('collab-engineering')" id="btn-collab-engineering" class="scenario-btn w-full text-left px-3 py-2.5 rounded-lg border border-transparent hover:bg-slate-800 transition flex items-center justify-between group">
+          <div>
+            <div class="font-medium text-sm text-slate-200 group-hover:text-blue-400">1. Collab Engineering</div>
+            <div class="text-xs text-slate-400">Shared Pool & SOP Verification</div>
+          </div>
+          <span class="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 border border-slate-700">Obj 2,4</span>
+        </button>
+
+        <button onclick="selectScenario('consensus-debate')" id="btn-consensus-debate" class="scenario-btn w-full text-left px-3 py-2.5 rounded-lg border border-transparent hover:bg-slate-800 transition flex items-center justify-between group">
+          <div>
+            <div class="font-medium text-sm text-slate-200 group-hover:text-blue-400">2. Consensus Debate</div>
+            <div class="text-xs text-slate-400">Multi-Round Confidence Scaling</div>
+          </div>
+          <span class="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 border border-slate-700">Obj 5</span>
+        </button>
+
+        <button onclick="selectScenario('long-horizon-memory')" id="btn-long-horizon-memory" class="scenario-btn w-full text-left px-3 py-2.5 rounded-lg border border-transparent hover:bg-slate-800 transition flex items-center justify-between group">
+          <div>
+            <div class="font-medium text-sm text-slate-200 group-hover:text-blue-400">3. Long-Horizon Memory</div>
+            <div class="text-xs text-slate-400">Chroma Vector vs Fast Memory</div>
+          </div>
+          <span class="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 border border-slate-700">Obj 3</span>
+        </button>
+
+        <button onclick="selectScenario('dynamic-orchestration')" id="btn-dynamic-orchestration" class="scenario-btn w-full text-left px-3 py-2.5 rounded-lg border border-transparent hover:bg-slate-800 transition flex items-center justify-between group">
+          <div>
+            <div class="font-medium text-sm text-slate-200 group-hover:text-blue-400">4. Dynamic Orchestration</div>
+            <div class="text-xs text-slate-400">Runtime Graph Mutation & Role Recruitment</div>
+          </div>
+          <span class="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 border border-slate-700">Obj 1</span>
+        </button>
+
+        <button onclick="selectScenario('marl-reward-shaping')" id="btn-marl-reward-shaping" class="scenario-btn w-full text-left px-3 py-2.5 rounded-lg border border-transparent hover:bg-slate-800 transition flex items-center justify-between group">
+          <div>
+            <div class="font-medium text-sm text-slate-200 group-hover:text-blue-400">5. MARL Reward Shaping</div>
+            <div class="text-xs text-slate-400">LLM Dense Reward Gridworld</div>
+          </div>
+          <span class="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400 border border-slate-700">Obj 6</span>
+        </button>
+
+        <div class="pt-2 border-t border-slate-800">
+          <button onclick="selectScenario('benchmarks')" id="btn-benchmarks" class="scenario-btn w-full text-left px-3 py-2.5 rounded-lg border border-transparent hover:bg-slate-800 transition flex items-center justify-between group bg-slate-800/40">
+            <div>
+              <div class="font-semibold text-sm text-indigo-400 group-hover:text-indigo-300">Benchmark Dashboard</div>
+              <div class="text-xs text-slate-400">Milestone KPIs & Run Logs</div>
+            </div>
+            <span class="text-[10px] bg-indigo-950 border border-indigo-700 text-indigo-300 px-1.5 py-0.5 rounded">Obj 7</span>
+          </button>
+        </div>
+      </nav>
+
+      <!-- RUN BUTTON -->
+      <div class="pt-2">
+        <button id="runActionBtn" onclick="triggerCurrentRun()" class="w-full py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm rounded-lg shadow-lg shadow-blue-600/30 transition flex items-center justify-center space-x-2">
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6V4z"/></svg>
+          <span id="runActionBtnText">Run Scenario</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- RIGHT CONTENT AREA (TOP PANE: DYNAMIC STAGE / BOTTOM PANE: TELEMETRY CONSOLE) -->
+    <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden">
+
+      <!-- TOP PANE: SCENARIO STAGE OUTPUT -->
+      <div id="stagePane" class="flex-1 p-5 overflow-y-auto border-b border-slate-800 bg-slate-900/30">
+        
+        <!-- Welcome Default View -->
+        <div id="view-welcome" class="h-full flex flex-col items-center justify-center text-center p-8">
+          <div class="w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-4">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+          </div>
+          <h2 class="text-xl font-bold text-white mb-2">Perspecta Mechanisms Demonstration</h2>
+          <p class="text-sm text-slate-400 max-w-md">
+            Select a scenario from the sidebar to inspect real execution verification, tiered memory latencies, graph dynamic mutations, and MARL reward shaping.
+          </p>
+        </div>
+
+        <!-- 1. Collab Engineering Stage View -->
+        <div id="view-collab-engineering" class="hidden space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center space-x-2">
+                <span>Collab Engineering (Coder → Reviewer → Tester)</span>
+                <span class="sim-tag">SIM Agent Logic</span>
+              </h3>
+              <p class="text-xs text-slate-400">SOP execution over shared message pool with real isolated code verification.</p>
+            </div>
+
+            <!-- SANDBOX WIDGET -->
+            <div id="sandboxWidget" class="flex items-center space-x-3 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs">
+              <div class="flex items-center space-x-2">
+                <span id="sandboxStatusDot" class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                <span id="sandboxStatusText" class="font-bold uppercase text-slate-400">Idle</span>
+              </div>
+              <div class="h-3 w-px bg-slate-700"></div>
+              <div class="text-slate-400">ID: <span id="sandboxContainerId" class="font-mono text-slate-200">--</span></div>
+              <div class="text-slate-400">Exit Code: <span id="sandboxExitCode" class="font-mono text-slate-200">--</span></div>
+              <div class="text-slate-400">Duration: <span id="sandboxDuration" class="font-mono text-slate-200">--</span></div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                <span>Generated Code Payload</span>
+                <span class="text-[10px] text-emerald-400 bg-emerald-950 border border-emerald-800 px-1.5 py-0.5 rounded">Real Code Execution</span>
+              </h4>
+              <pre id="collabCodeDisplay" class="bg-slate-950 p-3 rounded-lg text-xs font-mono text-slate-300 h-64 overflow-y-auto border border-slate-800"># Click 'Run Scenario' to generate code and evaluate in sandbox...</pre>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col">
+              <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                <span>Theory of Mind / Belief State Log</span>
+                <span class="text-[10px] text-amber-400 bg-amber-950 border border-amber-800 px-1.5 py-0.5 rounded">Real Graph State, Templated Language</span>
+              </h4>
+              <div id="collabBeliefContainer" class="flex-1 bg-slate-950 p-3 rounded-lg text-xs font-mono text-slate-300 space-y-2 overflow-y-auto border border-slate-800">
+                <div class="text-slate-500 italic">No belief state updates recorded yet.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Consensus Debate View -->
+        <div id="view-consensus-debate" class="hidden space-y-4">
+          <div class="pb-3 border-b border-slate-800 flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center space-x-2">
+                <span>Multi-Round Consensus Debate</span>
+                <span class="sim-tag">SIM Confidence Signal</span>
+              </h3>
+              <p class="text-xs text-slate-400">Heterogeneous model personas ("Llama-3-70B" vs "ERNIE-Bot-4") with weighted confidence scaling.</p>
+            </div>
+            <button onclick="toggleDisclaimerModal()" class="text-xs bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-800/60 px-2.5 py-1 rounded-lg transition flex items-center space-x-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>Logit Disclaimer & Formula</span>
+            </button>
+          </div>
+
+          <div id="consensusTurnsContainer" class="space-y-3 max-h-[380px] overflow-y-auto pr-2">
+            <div class="text-slate-500 text-xs italic text-center py-8">Click 'Run Scenario' to initiate multi-round consensus debate.</div>
+          </div>
+        </div>
+
+        <!-- 3. Long-Horizon Memory View -->
+        <div id="view-long-horizon-memory" class="hidden space-y-4">
+          <div class="pb-3 border-b border-slate-800">
+            <h3 class="text-base font-bold text-white flex items-center space-x-2">
+              <span>Tiered Memory Latency Indexing (Objective 3)</span>
+              <span class="text-[10px] text-emerald-400 bg-emerald-950 border border-emerald-800 px-1.5 py-0.5 rounded font-mono">Real Measured Latency (ms)</span>
+            </h3>
+            <p class="text-xs text-slate-400">Compares Fast Tier (Redis / Dict) vs Vector Tier (ChromaDB persistent similarity store).</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Fast Tier Memory</span>
+                  <span id="memoryFastBackend" class="text-xs bg-blue-950 border border-blue-800 text-blue-300 px-2 py-0.5 rounded">Redis / Dict</span>
+                </div>
+                <div class="text-3xl font-extrabold text-blue-400 font-mono my-2" id="memoryFastLatency">0.000 ms</div>
+                <div class="text-xs text-slate-400">Direct key-value store write & read latency.</div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-800 text-xs font-mono text-slate-400" id="memoryFastVal">
+                Key: -- | Val: --
+              </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-xs font-bold text-slate-300 uppercase tracking-wider">Vector Tier Memory</span>
+                  <span class="text-xs bg-indigo-950 border border-indigo-800 text-indigo-300 px-2 py-0.5 rounded">ChromaDB Persistent</span>
+                </div>
+                <div class="text-3xl font-extrabold text-indigo-400 font-mono my-2" id="memoryChromaLatency">0.000 ms</div>
+                <div class="text-xs text-slate-400">Semantic similarity search vector query latency.</div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-800 text-xs font-mono text-slate-400 overflow-hidden" id="memoryChromaDoc">
+                Document query matched: --
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Dynamic Orchestration View -->
+        <div id="view-dynamic-orchestration" class="hidden space-y-4">
+          <div class="pb-3 border-b border-slate-800">
+            <h3 class="text-base font-bold text-white flex items-center space-x-2">
+              <span>Dynamic Orchestration & Runtime Graph Mutation</span>
+              <span class="text-[10px] text-emerald-400 bg-emerald-950 border border-emerald-800 px-1.5 py-0.5 rounded">Real Graph Recompilation</span>
+            </h3>
+            <p class="text-xs text-slate-400">Detects failure at WorkerNode_B, injects DynamicRecoveryNode_C, recompiles graph topology runtime.</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                <span>Initial Topology (Failed)</span>
+                <span class="text-[10px] text-red-400 bg-red-950/80 border border-red-800 px-1.5 py-0.5 rounded">WorkerNode_B Failure</span>
+              </h4>
+              <div id="mermaidBefore" class="bg-slate-950 p-4 rounded-lg text-xs font-mono text-slate-300 border border-slate-800 min-h-[180px] flex items-center justify-center overflow-x-auto">
+                <div class="text-slate-500 italic text-xs">Rendering graph diagram...</div>
+              </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                <span>Mutated Topology (Recovered)</span>
+                <span class="text-[10px] text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-1.5 py-0.5 rounded">Injected Recovery Node</span>
+              </h4>
+              <div id="mermaidAfter" class="bg-slate-950 p-4 rounded-lg text-xs font-mono text-slate-300 border border-slate-800 min-h-[180px] flex items-center justify-center overflow-x-auto">
+                <div class="text-slate-500 italic text-xs">Rendering graph diagram...</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-lg text-xs text-slate-400 leading-relaxed">
+            <strong class="text-slate-200">State Carryover Mechanism Note:</strong> LangGraph compiled StateGraph instances are immutable. Upon node failure, the supervisor extracts current state dict, instantiates a mutated graph schema inserting the dynamic recovery node, recompiles the graph, and resumes execution seamlessly across state boundaries.
+          </div>
+        </div>
+
+        <!-- 5. MARL Reward Shaping View -->
+        <div id="view-marl-reward-shaping" class="hidden space-y-4">
+          <div class="pb-3 border-b border-slate-800">
+            <h3 class="text-base font-bold text-white flex items-center space-x-2">
+              <span>MARL Sample Efficiency & Reward Shaping</span>
+              <span class="text-[10px] text-amber-400 bg-amber-950 border border-amber-800 px-1.5 py-0.5 rounded">Illustrative Toy Measurement</span>
+            </h3>
+            <p class="text-xs text-slate-400">5x5 tabular Q-learning gridworld comparing sparse goal rewards vs LLM potential-based dense reward shaping.</p>
+          </div>
+
+          <div class="grid grid-cols-3 gap-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+              <div class="text-xs font-semibold text-slate-400 uppercase">Baseline Sparse Rewards</div>
+              <div id="marlSparseEps" class="text-3xl font-extrabold text-slate-200 font-mono my-2">--</div>
+              <div class="text-xs text-slate-500">Episodes to convergence</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+              <div class="text-xs font-semibold text-slate-400 uppercase">LLM Dense Shaped Rewards</div>
+              <div id="marlShapedEps" class="text-3xl font-extrabold text-blue-400 font-mono my-2">--</div>
+              <div class="text-xs text-slate-500">Episodes to convergence</div>
+            </div>
+
+            <div class="bg-slate-900 border border-blue-900/60 bg-blue-950/20 rounded-xl p-4 text-center">
+              <div class="text-xs font-semibold text-blue-300 uppercase">Measured Sample Efficiency</div>
+              <div id="marlImprovementPct" class="text-3xl font-extrabold text-emerald-400 font-mono my-2">--%</div>
+              <div class="text-xs text-slate-400">Calculated % reduction</div>
+            </div>
+          </div>
+
+          <div class="bg-amber-950/40 border border-amber-800/60 p-3 rounded-lg text-xs text-amber-300 leading-relaxed flex items-start space-x-2">
+            <svg class="w-4 h-4 text-amber-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <div>
+              <strong>Honesty Disclaimer:</strong> Illustrative toy result on a synthetic gridworld — not the benchmark referenced in the literature review.
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Benchmark Dashboard View -->
+        <div id="view-benchmarks" class="hidden space-y-4">
+          <div class="pb-3 border-b border-slate-800 flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center space-x-2">
+                <span>Perspecta Benchmark KPI Dashboard</span>
+                <span class="text-[10px] text-emerald-400 bg-emerald-950 border border-emerald-800 px-1.5 py-0.5 rounded">Computed from JSONL Run Logs</span>
+              </h3>
+              <p class="text-xs text-slate-400">Aggregated milestone KPIs derived directly from execution history (data/benchmark_logs.jsonl).</p>
+            </div>
+            <button onclick="loadBenchmarkDashboard()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-700 transition">
+              Refresh KPIs
+            </button>
+          </div>
+
+          <!-- KPI Cards Grid -->
+          <div class="grid grid-cols-4 gap-3">
+            <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl">
+              <div class="text-[11px] text-slate-400 uppercase font-semibold">Total Logged Runs</div>
+              <div id="kpiTotalRuns" class="text-2xl font-extrabold text-white font-mono my-1">0</div>
+              <div class="text-[10px] text-slate-500">Historical execution entries</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl">
+              <div class="text-[11px] text-slate-400 uppercase font-semibold">Task Success Rate</div>
+              <div id="kpiSuccessRate" class="text-2xl font-extrabold text-emerald-400 font-mono my-1">100%</div>
+              <div class="text-[10px] text-slate-500">Collab-engineering verification</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl">
+              <div class="text-[11px] text-slate-400 uppercase font-semibold">Memory Latency</div>
+              <div id="kpiMemoryLat" class="text-lg font-extrabold text-blue-400 font-mono my-1">0.1ms / 4.8ms</div>
+              <div class="text-[10px] text-slate-500">Redis/Dict vs ChromaDB vector</div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl">
+              <div class="text-[11px] text-slate-400 uppercase font-semibold">MARL Efficiency</div>
+              <div id="kpiMarlImprovement" class="text-2xl font-extrabold text-indigo-400 font-mono my-1">--%</div>
+              <div class="text-[10px] text-slate-500">Dense shaped improvement</div>
+            </div>
+          </div>
+
+          <!-- Recent Runs Table -->
+          <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div class="px-4 py-2.5 bg-slate-900/80 border-b border-slate-800 text-xs font-bold text-slate-300 uppercase tracking-wider">
+              Recent Logged Execution Runs
+            </div>
+            <div class="max-h-52 overflow-y-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 sticky top-0 font-semibold border-b border-slate-800">
+                  <tr>
+                    <th class="px-4 py-2">Run ID</th>
+                    <th class="px-4 py-2">Scenario</th>
+                    <th class="px-4 py-2">Duration (s)</th>
+                    <th class="px-4 py-2">Iterations</th>
+                    <th class="px-4 py-2">Sandbox Success</th>
+                  </tr>
+                </thead>
+                <tbody id="benchmarkTableBody" class="divide-y divide-slate-800 font-mono">
+                  <tr>
+                    <td colspan="5" class="px-4 py-4 text-center text-slate-500 italic">No execution logs recorded yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM PANE: TELEMETRY CONSOLE -->
+      <div class="h-64 bg-slate-950 border-t border-slate-800 flex flex-col shrink-0">
+        
+        <!-- Console Header & Filters -->
+        <div class="h-9 px-4 bg-slate-900/60 border-b border-slate-800 flex items-center justify-between text-xs shrink-0">
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-slate-300 uppercase tracking-wider text-[11px] flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+              <span>Live Telemetry Console</span>
+            </span>
+            <span id="eventCountBadge" class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono">0 events</span>
+          </div>
+
+          <!-- Filter buttons -->
+          <div class="flex items-center space-x-1 overflow-x-auto py-1">
+            <button onclick="setFilter('ALL')" class="filter-btn text-[10px] px-2 py-0.5 rounded bg-blue-600 text-white font-semibold">ALL</button>
+            <button onclick="setFilter('agent_message')" class="filter-btn text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white">agent_message</button>
+            <button onclick="setFilter('sandbox_status')" class="filter-btn text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white">sandbox_status</button>
+            <button onclick="setFilter('belief_update')" class="filter-btn text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white">belief_update</button>
+            <button onclick="setFilter('consensus_round')" class="filter-btn text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white">consensus_round</button>
+            <button onclick="setFilter('memory_op')" class="filter-btn text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white">memory_op</button>
+            <button onclick="setFilter('graph_mutation')" class="filter-btn text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white">graph_mutation</button>
+            <button onclick="setFilter('reward_step')" class="filter-btn text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white">reward_step</button>
+          </div>
+
+          <button onclick="clearConsole()" class="text-[10px] text-slate-400 hover:text-slate-200">Clear</button>
+        </div>
+
+        <!-- Telemetry Feed Output -->
+        <div id="telemetryConsole" onscroll="handleConsoleScroll()" class="flex-1 p-3 overflow-y-auto font-mono text-xs space-y-1 bg-slate-950">
+          <div class="text-slate-600 italic">Telemetry stream initialized. Ready to receive WebSocket events...</div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- TELEMETRY EVENT DETAIL MODAL (FIX 1) -->
+  <div id="eventModal" onclick="closeEventModal(event)" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-all duration-200">
+    <div onclick="event.stopPropagation()" class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-xl w-full p-5 shadow-2xl space-y-3.5 relative flex flex-col max-h-[85vh]">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+        <div class="flex items-center space-x-2.5 overflow-hidden">
+          <span id="eventModalSimTag"></span>
+          <span id="eventModalSummary" class="font-bold text-slate-100 text-xs truncate"></span>
+        </div>
+        <button onclick="closeEventModal()" class="text-slate-400 hover:text-white px-2 py-0.5 rounded font-bold text-lg leading-none transition" title="Close (Esc)">&times;</button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto min-h-0 space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Full Event Payload JSON:</div>
+          <button id="modalCopyBtn" onclick="copyModalJson()" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2.5 py-1 rounded transition flex items-center space-x-1">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            <span>Copy Raw JSON</span>
+          </button>
+        </div>
+        <pre id="eventModalJson" class="bg-slate-950 p-3 rounded-xl text-[11px] font-mono text-emerald-300 overflow-x-auto border border-slate-800 selection:bg-blue-900 leading-relaxed"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIT DISCLAIMER MODAL -->
+  <div id="disclaimerModal" onclick="if(event.target.id==='disclaimerModal')toggleDisclaimerModal()" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div onclick="event.stopPropagation()" class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 class="font-bold text-base text-amber-400 flex items-center space-x-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <span>Honesty & Logit Disclaimer</span>
+        </h3>
+        <button onclick="toggleDisclaimerModal()" class="text-slate-400 hover:text-white text-lg font-bold">&times;</button>
+      </div>
+      
+      <div class="text-xs text-slate-300 space-y-3 leading-relaxed">
+        <p>
+          <strong class="text-amber-300">Simulated Confidence Signal Note:</strong> Hosted LLM APIs (Anthropic/OpenAI) do not expose true model logit probabilities; a logit-derived version would require a self-hosted open-weight backend (e.g. vLLM).
+        </p>
+        <p>
+          In this review-1 demo, confidence scores are deterministically produced by <code class="bg-slate-950 px-1 py-0.5 rounded text-blue-300">MockProvider</code> and tagged explicitly with <span class="sim-tag">SIM</span>.
+        </p>
+        <div class="bg-slate-950 p-3 rounded-lg font-mono text-[11px] text-slate-300 border border-slate-800">
+          Weighting Formula: <br/>
+          <span class="text-emerald-400">derived_weight = stance_score * confidence</span>
+        </div>
+      </div>
+
+      <div class="pt-2 text-right">
+        <button onclick="toggleDisclaimerModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg">Close</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- JAVASCRIPT APP LOGIC -->
+  <script>
+    let activeScenario = 'collab-engineering';
+    let activeFilter = 'ALL';
+    let currentWS = null;
+    let autoScroll = true;
+    let allEvents = [];
+    let currentModalSeq = null;
+
+    const defaultBeforeMermaid = "graph TD\n  START --> WorkerNode_A\n  WorkerNode_A --> WorkerNode_B\n  WorkerNode_B -.->|FAILURE| END";
+    const defaultAfterMermaid = "graph TD\n  START --> WorkerNode_A\n  WorkerNode_A --> WorkerNode_B\n  WorkerNode_B -->|Injected Dynamic Edge| DynamicRecoveryNode_C\n  DynamicRecoveryNode_C --> Node_Final\n  Node_Final --> END";
+
+    // Initialize Mermaid configuration
+    if (window.mermaid) {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'dark',
+        securityLevel: 'loose',
+        themeVariables: {
+          primaryColor: '#1e293b',
+          primaryTextColor: '#f8fafc',
+          primaryBorderColor: '#334155',
+          lineColor: '#94a3b8',
+          secondaryColor: '#0f172a',
+          tertiaryColor: '#1e293b'
+        }
+      });
+    }
+
+    // Global Keydown Handler for Escape Key
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeEventModal();
+        const discModal = document.getElementById('disclaimerModal');
+        if (discModal) discModal.classList.add('hidden');
+      }
+    });
+
+    // Initialize application on load
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchHealth();
+      selectScenario('collab-engineering');
+      loadBenchmarkDashboard();
+    });
+
+    async function fetchHealth() {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        const backendName = document.getElementById('backendName');
+        const sandboxBadge = document.getElementById('sandboxBadge');
+
+        backendName.innerText = data.active_backend.toUpperCase() + ` (${data.isolation} isolation)`;
+        
+        if (data.active_backend === 'docker') {
+          sandboxBadge.className = "flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-700/60 text-emerald-300";
+        } else {
+          sandboxBadge.className = "flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-amber-950/60 border border-amber-700/60 text-amber-300";
+        }
+      } catch (err) {
+        console.error('Health check failed', err);
+      }
+    }
+
+    function selectScenario(name) {
+      activeScenario = name;
+      
+      // Update sidebar buttons active state
+      document.querySelectorAll('.scenario-btn').forEach(btn => {
+        btn.classList.remove('bg-slate-800', 'border-blue-500/50');
+      });
+      const activeBtn = document.getElementById(`btn-${name}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-slate-800', 'border-blue-500/50');
+      }
+
+      // Hide all stage views
+      const views = ['welcome', 'collab-engineering', 'consensus-debate', 'long-horizon-memory', 'dynamic-orchestration', 'marl-reward-shaping', 'benchmarks'];
+      views.forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) el.classList.add('hidden');
+      });
+
+      // Show selected stage view
+      const targetView = document.getElementById(`view-${name}`);
+      if (targetView) targetView.classList.remove('hidden');
+
+      if (name === 'dynamic-orchestration') {
+        renderMermaidDiagram('mermaidBefore', defaultBeforeMermaid, false);
+        renderMermaidDiagram('mermaidAfter', defaultAfterMermaid, true);
+      }
+
+      // Update action button text
+      const btnText = document.getElementById('runActionBtnText');
+      if (name === 'benchmarks') {
+        btnText.innerText = 'Refresh Benchmarks';
+      } else {
+        btnText.innerText = `Run ${name}`;
+      }
+    }
+
+    function triggerCurrentRun() {
+      if (activeScenario === 'benchmarks') {
+        loadBenchmarkDashboard();
+        return;
+      }
+      runScenario(activeScenario);
+    }
+
+    async function runScenario(scenarioName) {
+      if (currentWS) {
+        currentWS.close();
+      }
+
+      const runBtn = document.getElementById('runActionBtn');
+      runBtn.disabled = true;
+      runBtn.classList.add('opacity-50');
+
+      try {
+        const res = await fetch(`/api/run/${scenarioName}`, { method: 'POST' });
+        const data = await res.json();
+        
+        // Connect WebSocket
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}${data.ws_url}`;
+        
+        currentWS = new WebSocket(wsUrl);
+
+        currentWS.onopen = () => {
+          updateConnectionStatus('Streaming...', 'bg-blue-400');
+        };
+
+        currentWS.onmessage = (event) => {
+          const wsEvent = JSON.parse(event.data);
+          handleWSEvent(wsEvent);
+        };
+
+        currentWS.onclose = () => {
+          updateConnectionStatus('Ready', 'bg-emerald-400');
+          runBtn.disabled = false;
+          runBtn.classList.remove('opacity-50');
+          loadBenchmarkDashboard();
+        };
+
+      } catch (err) {
+        console.error('Scenario run error', err);
+        runBtn.disabled = false;
+        runBtn.classList.remove('opacity-50');
+      }
+    }
+
+    function handleWSEvent(event) {
+      allEvents.push(event);
+      renderTelemetryConsole();
+
+      // Dispatch event to specific scenario stage UI widgets
+      if (event.type === 'sandbox_status') {
+        updateSandboxWidget(event.payload);
+      } else if (event.type === 'agent_message' && activeScenario === 'collab-engineering') {
+        if (event.payload.content && event.payload.content.includes('def calculate_sum')) {
+          const codeDisplay = document.getElementById('collabCodeDisplay');
+          if (codeDisplay) codeDisplay.innerText = event.payload.content;
+        }
+      } else if (event.type === 'belief_update' && activeScenario === 'collab-engineering') {
+        appendBeliefUpdate(event.payload);
+      } else if (event.type === 'consensus_round') {
+        appendConsensusTurn(event.payload);
+      } else if (event.type === 'memory_op') {
+        updateMemoryStage(event.payload);
+      } else if (event.type === 'graph_mutation') {
+        updateGraphStage(event.payload);
+      } else if (event.type === 'reward_step' || (event.type === 'agent_message' && event.payload.improvement_pct !== undefined)) {
+        updateMarlStage(event.payload);
+      }
+    }
+
+    function updateSandboxWidget(payload) {
+      const dot = document.getElementById('sandboxStatusDot');
+      const text = document.getElementById('sandboxStatusText');
+      const containerId = document.getElementById('sandboxContainerId');
+      const exitCode = document.getElementById('sandboxExitCode');
+      const duration = document.getElementById('sandboxDuration');
+
+      containerId.innerText = payload.container_id || 'ephemeral';
+      exitCode.innerText = payload.exit_code !== undefined ? payload.exit_code : '--';
+      duration.innerText = payload.duration_sec ? `${payload.duration_sec}s` : '--';
+
+      if (payload.success) {
+        if (payload.isolation === 'strong') {
+          dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-lg shadow-emerald-500/50";
+          text.className = "font-bold uppercase text-emerald-400";
+          text.innerText = "Verified (Docker)";
+        } else {
+          dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400 shadow-lg shadow-amber-500/50";
+          text.className = "font-bold uppercase text-amber-400";
+          text.innerText = "Weak Isolation (Subproc)";
+        }
+      } else {
+        dot.className = "w-2.5 h-2.5 rounded-full bg-red-500 shadow-lg shadow-red-500/50";
+        text.className = "font-bold uppercase text-red-400";
+        text.innerText = "Failed";
+      }
+    }
+
+    function appendBeliefUpdate(payload) {
+      const container = document.getElementById('collabBeliefContainer');
+      if (!container) return;
+      
+      const card = document.createElement('div');
+      card.className = "p-2 rounded bg-slate-900 border border-slate-800 text-[11px]";
+      card.innerHTML = `
+        <div class="flex items-center justify-between text-slate-400 mb-1">
+          <span class="font-bold text-amber-300">${payload.agent || 'Agent'}</span>
+          <span class="text-[10px] text-slate-500 font-mono">${payload.node || ''}</span>
+        </div>
+        <div class="text-slate-300 leading-snug">${escapeHtml(payload.belief_statement || '')}</div>
+      `;
+      container.appendChild(card);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function appendConsensusTurn(payload) {
+      const container = document.getElementById('consensusTurnsContainer');
+      if (!container) return;
+      if (container.querySelector('.italic')) container.innerHTML = '';
+
+      const card = document.createElement('div');
+      card.className = "bg-slate-900 border border-slate-800 p-3 rounded-xl flex items-start justify-between text-xs";
+      
+      card.innerHTML = `
+        <div class="space-y-1">
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-blue-400">${payload.persona}</span>
+            <span class="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">Round ${payload.round}</span>
+            <span class="sim-tag">SIM Signal</span>
+          </div>
+          <p class="text-slate-300">${escapeHtml(payload.text || '')}</p>
+        </div>
+        <div class="text-right pl-4 shrink-0 font-mono">
+          <div class="text-slate-400">Confidence: <span class="text-amber-300 font-bold">${payload.confidence}</span></div>
+          <div class="text-slate-400">Stance: <span class="text-slate-200 font-bold">${payload.stance_score}</span></div>
+          <div class="text-emerald-400 font-bold text-sm mt-1">W: ${payload.derived_weight}</div>
+        </div>
+      `;
+      container.appendChild(card);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function updateMemoryStage(payload) {
+      if (payload.operation === 'RETRIEVE') {
+        document.getElementById('memoryFastBackend').innerText = (payload.fast_backend || 'DICT').toUpperCase();
+        document.getElementById('memoryFastLatency').innerText = `${payload.fast_latency_ms} ms`;
+        document.getElementById('memoryFastVal').innerText = `Key: ${payload.matched_key} | Result: ${payload.fast_result ? 'FOUND' : 'MISS'}`;
+
+        document.getElementById('memoryChromaLatency').innerText = `${payload.chroma_latency_ms} ms`;
+        if (payload.vector_results && payload.vector_results.length > 0) {
+          document.getElementById('memoryChromaDoc').innerText = `Doc: "${payload.vector_results[0].document.substring(0, 70)}..."`;
+        }
+      }
+    }
+
+    // FIX 2: Sequential Reveal Animation Helper
+    function applySequentialGraphAnimation(containerId, isAfter = false) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const svg = container.querySelector('svg');
+      if (!svg) return;
+
+      const nodes = Array.from(svg.querySelectorAll('.node'));
+      const edges = Array.from(svg.querySelectorAll('.edgePath, .link, .flowchart-link'));
+
+      // Set initial opacity and scale transform origin
+      nodes.forEach(n => {
+        n.style.opacity = '0';
+        n.style.transformOrigin = 'center center';
+        n.style.transform = 'scale(0.85)';
+      });
+      edges.forEach(e => {
+        e.style.opacity = '0';
+      });
+
+      const stepDelay = 220; // ms per step
+
+      nodes.forEach((node, idx) => {
+        const textContent = node.textContent || '';
+        let delay = idx * stepDelay;
+
+        // Injected node arrives last on the mutated pane
+        if (isAfter && textContent.includes('DynamicRecoveryNode_C')) {
+          delay = (nodes.length - 1) * stepDelay + 120;
+        }
+
+        setTimeout(() => {
+          node.style.transition = 'opacity 0.35s ease-out, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)';
+          node.style.opacity = '1';
+          node.style.transform = 'scale(1)';
+        }, delay);
+      });
+
+      edges.forEach((edge, idx) => {
+        const textContent = edge.textContent || '';
+        let delay = (idx + 0.5) * stepDelay;
+
+        // Injected edge arrives with the recovery node
+        if (isAfter && (idx === 2 || textContent.includes('Injected'))) {
+          delay = (nodes.length - 1) * stepDelay;
+        }
+
+        setTimeout(() => {
+          edge.style.transition = 'opacity 0.35s ease-out';
+          edge.style.opacity = '1';
+
+          // Failure edge pulse animation on initial pane
+          if (!isAfter && (idx === 2 || textContent.includes('FAILURE'))) {
+            const path = edge.querySelector('path');
+            if (path) {
+              path.classList.add('animate-failure-edge');
+            }
+          }
+        }, delay);
+      });
+    }
+
+    async function renderMermaidDiagram(containerId, rawMermaidText, isAfter = false) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      if (!rawMermaidText) return;
+
+      let styledMermaid = rawMermaidText.trim();
+      if (!isAfter) {
+        if (!styledMermaid.includes('style WorkerNode_B')) {
+          styledMermaid += '\n  style WorkerNode_B fill:#7f1d1d,stroke:#ef4444,stroke-width:2px,color:#ffffff';
+          styledMermaid += '\n  linkStyle 2 stroke:#ef4444,stroke-width:2px;';
+        }
+      } else {
+        if (!styledMermaid.includes('style DynamicRecoveryNode_C')) {
+          styledMermaid += '\n  style DynamicRecoveryNode_C fill:#064e3b,stroke:#10b981,stroke-width:3px,color:#ffffff';
+          styledMermaid += '\n  style WorkerNode_B fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#ffffff';
+          styledMermaid += '\n  linkStyle 2 stroke:#10b981,stroke-width:3px;';
+        }
+      }
+
+      if (window.mermaid && typeof mermaid.render === 'function') {
+        try {
+          const uniqueId = 'mermaid-' + containerId + '-' + Math.floor(Math.random() * 100000);
+          const res = await mermaid.render(uniqueId, styledMermaid);
+          container.innerHTML = res.svg;
+
+          // FIX 2: Enhance SVG rect shapes to look like modern rounded cards with drop shadows
+          const svgEl = container.querySelector('svg');
+          if (svgEl) {
+            svgEl.style.maxWidth = '100%';
+            svgEl.style.height = 'auto';
+
+            const rects = svgEl.querySelectorAll('.node rect, .node circle, .node polygon');
+            rects.forEach(rect => {
+              rect.setAttribute('rx', '8');
+              rect.setAttribute('ry', '8');
+              rect.style.filter = 'drop-shadow(0 4px 6px rgba(0,0,0,0.4))';
+            });
+          }
+
+          // Trigger step-by-step reveal animation
+          applySequentialGraphAnimation(containerId, isAfter);
+          return;
+        } catch (err) {
+          console.warn('Mermaid rendering error, falling back to text:', err);
+        }
+      }
+
+      container.innerHTML = `<pre class="text-xs text-slate-300 font-mono whitespace-pre-wrap">${escapeHtml(rawMermaidText)}</pre>`;
+    }
+
+    function updateGraphStage(payload) {
+      if (payload.before && payload.before.mermaid) {
+        renderMermaidDiagram('mermaidBefore', payload.before.mermaid, false);
+      }
+      if (payload.after && payload.after.mermaid) {
+        renderMermaidDiagram('mermaidAfter', payload.after.mermaid, true);
+      }
+    }
+
+    function updateMarlStage(payload) {
+      if (payload.sparse_episodes !== undefined) {
+        document.getElementById('marlSparseEps').innerText = payload.sparse_episodes;
+      }
+      if (payload.shaped_episodes !== undefined) {
+        document.getElementById('marlShapedEps').innerText = payload.shaped_episodes;
+      }
+      if (payload.improvement_pct !== undefined) {
+        document.getElementById('marlImprovementPct').innerText = `${payload.improvement_pct}%`;
+      }
+    }
+
+    async function loadBenchmarkDashboard() {
+      try {
+        const res = await fetch('/api/benchmarks');
+        const data = await res.json();
+        
+        document.getElementById('kpiTotalRuns').innerText = data.total_runs;
+        document.getElementById('kpiSuccessRate').innerText = `${data.task_success_rate}%`;
+        document.getElementById('kpiMemoryLat').innerText = `${data.avg_memory_redis_ms}ms / ${data.avg_memory_chroma_ms}ms`;
+        document.getElementById('kpiMarlImprovement').innerText = `${data.marl_improvement_pct}%`;
+
+        const tbody = document.getElementById('benchmarkTableBody');
+        if (!data.recent_runs || data.recent_runs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-slate-500 italic">No execution logs recorded yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = data.recent_runs.map(run => `
+          <tr class="hover:bg-slate-800/40">
+            <td class="px-4 py-2 text-slate-400">${run.run_id}</td>
+            <td class="px-4 py-2 text-blue-400 font-sans font-semibold">${run.scenario}</td>
+            <td class="px-4 py-2 text-slate-300">${run.duration_sec}s</td>
+            <td class="px-4 py-2 text-slate-300">${run.iterations}</td>
+            <td class="px-4 py-2">
+              <span class="px-2 py-0.5 text-[10px] rounded font-bold ${run.sandbox_pass_count > 0 ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-slate-800 text-slate-400'}">
+                ${run.sandbox_pass_count > 0 ? 'PASS' : 'N/A'}
+              </span>
+            </td>
+          </tr>
+        `).join('');
+
+      } catch (err) {
+        console.error('Failed loading benchmarks', err);
+      }
+    }
+
+    function setFilter(type) {
+      activeFilter = type;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        if (btn.innerText === type) {
+          btn.className = "filter-btn text-[10px] px-2 py-0.5 rounded bg-blue-600 text-white font-semibold";
+        } else {
+          btn.className = "filter-btn text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 hover:text-white";
+        }
+      });
+      renderTelemetryConsole();
+    }
+
+    function getEventSummary(evt) {
+      const p = evt.payload || {};
+      switch (evt.type) {
+        case 'agent_message':
+          return `${p.agent || 'Agent'}: ${p.content ? (p.content.substring(0, 80) + (p.content.length > 80 ? '...' : '')) : ''}`;
+        case 'handover':
+          return `Handover: ${p.from_agent || 'Agent'} ➔ ${p.to_agent || 'Agent'} (${p.artifact || p.reason || 'task transfer'})`;
+        case 'belief_update':
+          return `Belief State [${p.agent || 'Agent'} @ ${p.node || 'State'}]: "${p.belief_statement ? (p.belief_statement.substring(0, 70) + '...') : ''}"`;
+        case 'sandbox_status':
+          return `Sandbox Executed [${p.backend || 'Sandbox'}]: ${p.success ? 'PASSED' : 'FAILED'} (Exit Code ${p.exit_code}, ${p.duration_sec}s)`;
+        case 'graph_mutation':
+          return `Recovery node DynamicRecoveryNode_C injected after ${p.reason || 'failure'}`;
+        case 'memory_op':
+          return `Memory ${p.operation || 'OP'}: Key '${p.key || p.matched_key || ''}', Fast: ${p.fast_latency_ms || 0}ms, Chroma: ${p.chroma_latency_ms || 0}ms`;
+        case 'consensus_round':
+          return `${p.persona || 'Persona'}, Round ${p.round}: Stance ${p.stance_score}, Confidence ${p.confidence}, Weight ${p.derived_weight}`;
+        case 'reward_step':
+          return `MARL Q-Learning Step [Mode: ${p.mode}]: Convergence at ${p.episodes_to_convergence} episodes`;
+        case 'benchmark_update':
+          return `Benchmark Update: Total Runs ${p.total_runs}, Task Success Rate ${p.task_success_rate}%`;
+        case 'run_complete':
+          return `Scenario Run Complete (${p.scenario}): Duration ${p.duration_sec}s, Status: ${p.status}`;
+        case 'error':
+          return `Error: ${p.message || p.error || 'Execution Exception'}`;
+        default:
+          return `${evt.type} event payload`;
+      }
+    }
+
+    // FIX 1: Open Event Detail Centered Modal
+    function openEventModal(seq) {
+      const evt = allEvents.find(e => e.seq === seq);
+      if (!evt) return;
+
+      currentModalSeq = seq;
+      const summary = getEventSummary(evt);
+      const prettyJson = JSON.stringify(evt.payload, null, 2);
+
+      document.getElementById('eventModalSummary').innerText = summary;
+      document.getElementById('eventModalJson').innerText = prettyJson;
+
+      const simContainer = document.getElementById('eventModalSimTag');
+      if (evt.simulated) {
+        simContainer.innerHTML = `<span class="sim-tag px-2.5 py-0.5 text-xs font-bold tracking-wide shadow-md">SIMULATED EVENT</span>`;
+      } else {
+        simContainer.innerHTML = `<span class="text-xs bg-emerald-950 border border-emerald-800 text-emerald-300 font-bold px-2 py-0.5 rounded">REAL MEASURED EVENT</span>`;
+      }
+
+      const modal = document.getElementById('eventModal');
+      modal.classList.remove('hidden');
+    }
+
+    // FIX 1: Close Event Detail Centered Modal
+    function closeEventModal(e) {
+      if (e && e.target && e.target.id !== 'eventModal' && !e.target.closest('button')) {
+        return;
+      }
+      const modal = document.getElementById('eventModal');
+      modal.classList.add('hidden');
+      currentModalSeq = null;
+    }
+
+    function copyModalJson() {
+      if (!currentModalSeq) return;
+      copyToClipboard(currentModalSeq);
+      const btn = document.getElementById('modalCopyBtn');
+      if (btn) {
+        btn.innerHTML = `<span class="text-emerald-400 font-bold">✓ Copied!</span>`;
+        setTimeout(() => {
+          btn.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg><span>Copy Raw JSON</span>`;
+        }, 1500);
+      }
+    }
+
+    function copyToClipboard(seq) {
+      const evt = allEvents.find(e => e.seq === seq);
+      if (!evt) return;
+      const jsonStr = JSON.stringify(evt.payload, null, 2);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(jsonStr).then(() => {
+          showCopySuccess(seq);
+        }).catch(err => {
+          fallbackCopyText(jsonStr, seq);
+        });
+      } else {
+        fallbackCopyText(jsonStr, seq);
+      }
+    }
+
+    function showCopySuccess(seq) {
+      const btn = document.getElementById(`copy-btn-${seq}`);
+      if (btn) {
+        btn.innerHTML = `<span class="text-emerald-400 font-bold">✓ Copied!</span>`;
+        setTimeout(() => {
+          btn.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg><span>Copy Raw JSON</span>`;
+        }, 1500);
+      }
+    }
+
+    function fallbackCopyText(text, seq) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showCopySuccess(seq);
+      } catch (err) {
+        console.error('Fallback copy failed', err);
+      }
+      document.body.removeChild(textArea);
+    }
+
+    function renderTelemetryConsole() {
+      const consoleEl = document.getElementById('telemetryConsole');
+      const filtered = activeFilter === 'ALL' ? allEvents : allEvents.filter(e => e.type === activeFilter);
+      
+      document.getElementById('eventCountBadge').innerText = `${filtered.length} / ${allEvents.length} events`;
+
+      if (filtered.length === 0) {
+        consoleEl.innerHTML = `<div class="text-slate-600 italic">No events matching filter '${activeFilter}'.</div>`;
+        return;
+      }
+
+      consoleEl.innerHTML = filtered.map(evt => {
+        const timeStr = new Date(evt.ts * 1000).toLocaleTimeString();
+        const simBadge = evt.simulated ? `<span class="sim-tag">SIM</span>` : ``;
+        const summary = getEventSummary(evt);
+
+        return `
+          <div onclick="openEventModal(${evt.seq})" class="cursor-pointer group flex items-center space-x-2 py-1.5 px-2 rounded hover:bg-slate-900 border-b border-slate-900 text-[11px] transition">
+            <span class="text-slate-500 font-mono shrink-0">#${evt.seq}</span>
+            <span class="text-slate-600 font-mono shrink-0">${timeStr}</span>
+            <span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-blue-300 border border-slate-700 shrink-0 font-semibold">${evt.type}</span>
+            ${simBadge}
+            <span class="text-slate-300 truncate font-mono flex-1 group-hover:text-blue-300">${escapeHtml(summary)}</span>
+            <span class="text-[10px] text-slate-500 group-hover:text-slate-300 font-mono">inspect ↗</span>
+          </div>
+        `;
+      }).join('');
+
+      if (autoScroll) {
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      }
+    }
+
+    function handleConsoleScroll() {
+      const consoleEl = document.getElementById('telemetryConsole');
+      const isAtBottom = consoleEl.scrollHeight - consoleEl.scrollTop <= consoleEl.clientHeight + 20;
+      autoScroll = isAtBottom;
+    }
+
+    function clearConsole() {
+      allEvents = [];
+      renderTelemetryConsole();
+    }
+
+    function updateConnectionStatus(text, dotClass) {
+      const badge = document.getElementById('connectionBadge');
+      badge.innerHTML = `<span class="w-2 h-2 rounded-full ${dotClass}"></span><span class="text-slate-300 font-medium">${text}</span>`;
+    }
+
+    function toggleDisclaimerModal() {
+      const modal = document.getElementById('disclaimerModal');
+      modal.classList.toggle('hidden');
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+  </script>
+</body>
+</html>
